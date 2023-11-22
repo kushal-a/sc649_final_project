@@ -8,8 +8,8 @@ from sensor_msgs.msg import Imu
 
 home_x, home_y = 0,0
 velocity = 0.1
-k = 1
-gamma = 1
+k = 6
+gamma = 3
 h = 1
 
 
@@ -23,14 +23,13 @@ def controller(X):
     new_vel = gamma * np.cos(alpha)*e
     return omega, new_vel
 
-
 class control_handle():
 
     def __init__(self):
         self.node       = rospy.init_node('controller', anonymous=True)
-        self.odom  = rospy.Subscriber('tb3_odom', Odometry, self.OdomCallback)
-        self.imu       = rospy.Subscriber('tb3_imu', Imu, self.ImuCallback)
-        self.vel_pub    = rospy.Publisher('cmd_vel', Twist, queue_size= 1000)
+        self.odom  = rospy.Subscriber('/odom', Odometry, self.OdomCallback)
+        self.imu       = rospy.Subscriber('/imu', Imu, self.ImuCallback)
+        self.vel_pub    = rospy.Publisher('/cmd_vel', Twist, queue_size= 1000)
         self.velocity   = velocity
         self.w  = 0
         self.X_home     = np.empty(3)
@@ -40,16 +39,15 @@ class control_handle():
         print("Starting controller")
 
     def run(self):
-        
-        omega, new_vel  = controller(self.X_home)
-
-        vel = Twist()
-        vel.linear.x   = new_vel
-        vel.angular.z  = omega
-        self.vel_pub.publish(vel)  
+        while not rospy.is_shutdown():
+            omega, new_vel  = controller(self.X_home)
+            vel = Twist()
+            vel.linear.x   = new_vel
+            vel.angular.z  = omega
+            self.vel_pub.publish(vel)  
 
     def OdomCallback(self, data):
-
+        
         pos = data.pose.pose
         position = pos.position
 
@@ -70,7 +68,7 @@ class control_handle():
         if theta<0:
             theta = 2*np.pi + theta    #theta \in [0, 2pi]
 
-        e = np.sqrt(x_rel^2+y_rel^2)
+        e = np.sqrt(np.power(x_rel,2)+np.power(y_rel,2))
         ### IMPORTANT: X stores e,phi,theta of a bot
         self.X_home = np.array([e, phi, theta])
 
