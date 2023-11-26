@@ -1,0 +1,14 @@
+{
+    "python.autoComplete.extraPaths": [
+        "/home/kushal/sc649_ws/devel/lib/python3/dist-packages",
+        "/home/kushal/arms/devel/lib/python3/dist-packages",
+        "/home/kushal/catkin_ws/devel/lib/python3/dist-packages",
+        "/opt/ros/noetic/lib/python3/dist-packages"
+    ],
+    "python.analysis.extraPaths": [
+        "/home/kushal/sc649_ws/devel/lib/python3/dist-packages",
+        "/home/kushal/arms/devel/lib/python3/dist-packages",
+        "/home/kushal/catkin_ws/devel/lib/python3/dist-packages",
+        "/opt/ros/noetic/lib/python3/dist-packages"
+    ]
+}

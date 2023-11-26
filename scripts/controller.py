@@ -8,9 +8,9 @@ from sensor_msgs.msg import Imu
 
 home_x, home_y = 0,0
 velocity = 0.1
-k = 6
-gamma = 3
-h = 1
+k = 0.5
+gamma = 0.15
+h = 2
 
 
 def controller(X):
@@ -32,7 +32,7 @@ class control_handle():
         self.vel_pub    = rospy.Publisher('/cmd_vel', Twist, queue_size= 1000)
         self.velocity   = velocity
         self.w  = 0
-        self.X_home     = np.empty(3)
+        self.X     = np.empty(3)
         self.rate       = rospy.Rate(10) # 10hz
         self.engaged    = False
         self.time       = 0
@@ -40,7 +40,12 @@ class control_handle():
 
     def run(self):
         while not rospy.is_shutdown():
-            omega, new_vel  = controller(self.X_home)
+            print(self.X, self.velocity, self.w)
+            if self.X[0]<1.6 and (self.X[1]<0.17 or self.X[1]>6.1) and (self.X[2]<0.17 or self.X[2]>6.1):
+                omega = 0
+                new_vel = 0
+            else:
+                omega, new_vel  = controller(self.X)
             vel = Twist()
             vel.linear.x   = new_vel
             vel.angular.z  = omega
@@ -54,8 +59,8 @@ class control_handle():
         # global x and y positions
         x, y = position.x, position.y
         #x and y positions relative to home
-        x_rel = x - home_x
-        y_rel = y - home_y
+        x_rel = home_x - x
+        y_rel = home_y - y
 
         #phi relative to axis parallel to global x
         quaternion = pos.orientation
@@ -70,7 +75,7 @@ class control_handle():
 
         e = np.sqrt(np.power(x_rel,2)+np.power(y_rel,2))
         ### IMPORTANT: X stores e,phi,theta of a bot
-        self.X_home = np.array([e, phi, theta])
+        self.X = np.array([e, phi, theta])
 
 
         #velocity
@@ -87,4 +92,4 @@ if __name__ == '__main__':
     try:
         con_h.run()
     except rospy.ROSInterruptException:
-        pass
+        pass 
