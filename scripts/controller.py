@@ -5,12 +5,54 @@ import numpy as np
 from tf.transformations import euler_from_quaternion
 from nav_msgs.msg import Odometry
 from sensor_msgs.msg import Imu
+from sc649_final_project.msgs import TrajectoryPoints
+from std_msgs.msg import Float64
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+import numpy as np
+from IPython.display import HTML
 
-home_x, home_y = 0,0
+
 velocity = 0.1
 k = 0.5
 gamma = 0.15
 h = 2
+csv = np.empty((0, 3))
+stop_positions = []
+
+# Lists to store the lines connecting the dots
+lines = []
+
+# Function to update the plot in each animation frame
+def update(frame):
+    # Clear the previous plot
+    plt.clf()
+
+    # Get the current data point
+    current_point = csv[frame]
+
+    # Plot the arrow at the specified coordinates and angle
+    plt.arrow(current_point['x'], current_point['y'],
+              0.1 * np.cos(np.radians(current_point['angle'])),
+              0.1 * np.sin(np.radians(current_point['angle'])),
+              head_width=5, head_length=5, fc='red', ec='red')
+
+    # Store the position where the arrow stops
+    stop_positions.append((current_point['x'], current_point['y']))
+
+    # Plot dots at stopping points
+    plt.scatter(*zip(*stop_positions), color='blue', s=10, marker='o')
+
+    # Plot lines connecting the dots
+    if len(stop_positions) > 1:
+        lines.append(plt.plot(*zip(*stop_positions), color='blue', linestyle='-', marker='o'))
+
+    # Set plot limits
+    plt.xlim(0, 150)
+    plt.ylim(0, 150)
+
+    # Set plot title
+    plt.title(f"Frame {frame + 1}/{len(csv)}")
 
 
 def controller(X):
@@ -30,7 +72,10 @@ class control_handle():
         self.odom  = rospy.Subscriber('/odom', Odometry, self.OdomCallback)
         self.imu       = rospy.Subscriber('/imu', Imu, self.ImuCallback)
         self.vel_pub    = rospy.Publisher('/cmd_vel', Twist, queue_size= 1000)
+        self.points_pub    = rospy.Publisher('/points', Float64, queue_size= 1000)
+        self.points_sub = rospy.Subscriber('/points', TrajectoryPoints, self.PointsCallback)
         self.velocity   = velocity
+        self.home_X  = np.empty(3)
         self.w  = 0
         self.X     = np.empty(3)
         self.rate       = rospy.Rate(10) # 10hz
@@ -49,7 +94,20 @@ class control_handle():
             vel = Twist()
             vel.linear.x   = new_vel
             vel.angular.z  = omega
-            self.vel_pub.publish(vel)  
+            self.vel_pub.publish(vel)
+            error = self.X[0] + self.X[1] +self.X[2]  
+            self.error_pub(error)
+            csv=np.append(csv,self.X,axis=0)
+        else:
+            fig, ax = plt.subplots()
+
+# Create an animation
+            animation = FuncAnimation(fig, update, frames=len(csv), interval=1000)
+
+# Display the animation in the notebook
+            HTML(animation.to_jshtml())
+            
+
 
     def OdomCallback(self, data):
         
@@ -59,8 +117,8 @@ class control_handle():
         # global x and y positions
         x, y = position.x, position.y
         #x and y positions relative to home
-        x_rel = home_x - x
-        y_rel = home_y - y
+        x_rel = self.home_X[0] - x
+        y_rel = self.home_X[1] - y
 
         #phi relative to axis parallel to global x
         quaternion = pos.orientation
@@ -84,8 +142,11 @@ class control_handle():
     def ImuCallback(self, data):
         self.w = data.angular_velocity.x
 
-
-
+    def PointsCallback(self, data):
+        self.home_X[0] = data.X
+        self.home_X[1] = data.Y
+        self.home_X[2] = data.YAW
+        
 
 if __name__ == '__main__':
     con_h = control_handle()
