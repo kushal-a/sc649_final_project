@@ -5,8 +5,10 @@ import numpy as np
 from tf.transformations import euler_from_quaternion
 from nav_msgs.msg import Odometry
 from sensor_msgs.msg import Imu
+from sc649_final_project.msgs import TrajectoryPoints
+from std_msgs.msg import Float64
 
-home_x, home_y = 0,0
+
 velocity = 0.1
 k = 0.5
 gamma = 0.15
@@ -30,7 +32,10 @@ class control_handle():
         self.odom  = rospy.Subscriber('/odom', Odometry, self.OdomCallback)
         self.imu       = rospy.Subscriber('/imu', Imu, self.ImuCallback)
         self.vel_pub    = rospy.Publisher('/cmd_vel', Twist, queue_size= 1000)
+        self.points_pub    = rospy.Publisher('/points', Float64, queue_size= 1000)
+        self.points_sub = rospy.Subscriber('/points', TrajectoryPoints, self.PointsCallback)
         self.velocity   = velocity
+        self.home_X  = np.empty(3)
         self.w  = 0
         self.X     = np.empty(3)
         self.rate       = rospy.Rate(10) # 10hz
@@ -49,7 +54,9 @@ class control_handle():
             vel = Twist()
             vel.linear.x   = new_vel
             vel.angular.z  = omega
-            self.vel_pub.publish(vel)  
+            self.vel_pub.publish(vel)
+            error = self.X[0] + self.X[1] +self.X[2]  
+            self.error_pub(error)
 
     def OdomCallback(self, data):
         
@@ -59,8 +66,8 @@ class control_handle():
         # global x and y positions
         x, y = position.x, position.y
         #x and y positions relative to home
-        x_rel = home_x - x
-        y_rel = home_y - y
+        x_rel = self.home_X[0] - x
+        y_rel = self.home_X[1] - y
 
         #phi relative to axis parallel to global x
         quaternion = pos.orientation
@@ -84,8 +91,11 @@ class control_handle():
     def ImuCallback(self, data):
         self.w = data.angular_velocity.x
 
-
-
+    def PointsCallback(self, data):
+        self.home_X[0] = data.X
+        self.home_X[1] = data.Y
+        self.home_X[2] = data.YAW
+        
 
 if __name__ == '__main__':
     con_h = control_handle()
