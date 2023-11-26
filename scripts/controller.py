@@ -8,9 +8,9 @@ from sensor_msgs.msg import Imu
 
 home_x, home_y = 0,0
 velocity = 0.1
-k = 0.5
+k = 0.6
 gamma = 0.15
-h = 2
+h = 1
 
 
 def controller(X):
@@ -41,7 +41,7 @@ class control_handle():
     def run(self):
         while not rospy.is_shutdown():
             print(self.X, self.velocity, self.w)
-            if self.X[0]<1.6 and (self.X[1]<0.17 or self.X[1]>6.1) and (self.X[2]<0.17 or self.X[2]>6.1):
+            if self.X[0]<1 and (self.X[1]<0.17 or self.X[1]>6.1) and (self.X[2]<0.17 or self.X[2]>6.1):
                 omega = 0
                 new_vel = 0
             else:
