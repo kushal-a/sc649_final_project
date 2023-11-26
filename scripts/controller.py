@@ -57,6 +57,8 @@ class control_handle():
             self.vel_pub.publish(vel)
             error = self.X[0] + self.X[1] +self.X[2]  
             self.error_pub.publish(error)
+        else:
+            print("lidfubvliaubvliuvbpubvapsbvs;vjlbslvbaslvhblasvhblasvhb")
 
     def OdomCallback(self, data):
         
