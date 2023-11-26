@@ -7,6 +7,10 @@ from nav_msgs.msg import Odometry
 from sensor_msgs.msg import Imu
 from sc649_final_project.msg import TrajectoryPoints
 from std_msgs.msg import Float64
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+import numpy as np
+from IPython.display import HTML
 
 
 velocity = 0.1
@@ -57,8 +61,17 @@ class control_handle():
             self.vel_pub.publish(vel)
             error = self.X[0] + self.X[1] +self.X[2]  
             self.error_pub.publish(error)
-        else:
-            print("lidfubvliaubvliuvbpubvapsbvs;vjlbslvbaslvhblasvhblasvhb")
+            csv=np.append(csv,self.X,axis=0)
+        else:            
+            fig, ax = plt.subplots()
+
+# Create an animation
+            animation = FuncAnimation(fig, update, frames=len(csv), interval=1000)
+
+# Display the animation in the notebook
+            HTML(animation.to_jshtml())
+            
+
 
     def OdomCallback(self, data):
         
