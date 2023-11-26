@@ -12,9 +12,9 @@ import numpy as np
 
 
 velocity = 0.1
-k = 0.6
+k = 0.5
 gamma = 0.15
-h = 1.5
+h = 2
 
 def controller(X):
     # X stores e,phi,theta of a bot
@@ -48,8 +48,8 @@ class control_handle():
 
     def run(self):
         while not rospy.is_shutdown():
-            # print(self.X, self.velocity, self.w)
-            if self.X[0]<1 and (self.X[1]<0.17 or self.X[1]>6.1) and (self.X[2]<0.17 or self.X[2]>6.1):
+            print(self.X, self.velocity, self.w)
+            if self.X[0]<1.6 and (self.X[1]<0.17 or self.X[1]>6.1) and (self.X[2]<0.17 or self.X[2]>6.1):
                 omega = 0
                 new_vel = 0
             else:
@@ -62,7 +62,7 @@ class control_handle():
             self.error_pub.publish(error)
             self.state_data = np.vstack((self.state_data,self.x_state_home))
         else:
-            np.savetxt("/home/kushal/sc649_ws/src/sc649_final_project/data/states.csv")
+            np.savetxt("/home/kushal/sc649_ws/src/sc649_final_project/data/states.csv", self.state_data)
 
 
     def OdomCallback(self, data):
@@ -103,7 +103,6 @@ class control_handle():
         self.home_X[0] = data.X
         self.home_X[1] = data.Y
         self.home_X[2] = data.YAW
-        print("POINT RECIEVED %f %f %f"%(data.X,data.Y,data.YAW))
         
 
 if __name__ == '__main__':
