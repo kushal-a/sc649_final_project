@@ -24,5 +24,6 @@
     <node pkg="gazebo_ros" type="spawn_model" name="spawn_urdf" 
      args="-urdf -model turtlebot3_$(arg model) -x $(arg x_pos) -y $(arg y_pos) -z $(arg z_pos) -Y $(arg yaw) -param robot_description "  />  
 
-    <node pkg="sc649_final_project" type="controller.py" name="controller" output="screen" /><!--args = "-x $(arg target_x_pos) -y $(arg target_y_pos) -z $(arg target_z_pos)"/>-->
+    <node pkg="sc649_final_project" type="controller.py" name="controller" output="screen" />
+    <node pkg="sc649_final_project" type="trajectory.py" name="trajectory" output="screen" />
 </launch>

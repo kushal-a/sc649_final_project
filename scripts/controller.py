@@ -5,14 +5,14 @@ import numpy as np
 from tf.transformations import euler_from_quaternion
 from nav_msgs.msg import Odometry
 from sensor_msgs.msg import Imu
-from sc649_final_project.msgs import TrajectoryPoints
+from sc649_final_project.msg import TrajectoryPoints
 from std_msgs.msg import Float64
 
 
 velocity = 0.1
 k = 0.6
 gamma = 0.15
-h = 1
+h = 1.5
 
 
 def controller(X):
@@ -32,7 +32,7 @@ class control_handle():
         self.odom  = rospy.Subscriber('/odom', Odometry, self.OdomCallback)
         self.imu       = rospy.Subscriber('/imu', Imu, self.ImuCallback)
         self.vel_pub    = rospy.Publisher('/cmd_vel', Twist, queue_size= 1000)
-        self.points_pub    = rospy.Publisher('/points', Float64, queue_size= 1000)
+        self.error_pub    = rospy.Publisher('/error', Float64, queue_size= 1000)
         self.points_sub = rospy.Subscriber('/points', TrajectoryPoints, self.PointsCallback)
         self.velocity   = velocity
         self.home_X  = np.empty(3)
@@ -45,7 +45,7 @@ class control_handle():
 
     def run(self):
         while not rospy.is_shutdown():
-            print(self.X, self.velocity, self.w)
+            # print(self.X, self.velocity, self.w)
             if self.X[0]<1 and (self.X[1]<0.17 or self.X[1]>6.1) and (self.X[2]<0.17 or self.X[2]>6.1):
                 omega = 0
                 new_vel = 0
@@ -56,7 +56,7 @@ class control_handle():
             vel.angular.z  = omega
             self.vel_pub.publish(vel)
             error = self.X[0] + self.X[1] +self.X[2]  
-            self.error_pub(error)
+            self.error_pub.publish(error)
 
     def OdomCallback(self, data):
         
@@ -95,6 +95,7 @@ class control_handle():
         self.home_X[0] = data.X
         self.home_X[1] = data.Y
         self.home_X[2] = data.YAW
+        print("POINT RECIEVED %f %f %f"%(data.X,data.Y,data.YAW))
         
 
 if __name__ == '__main__':
