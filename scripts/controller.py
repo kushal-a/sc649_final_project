@@ -2,22 +2,19 @@
 import rospy
 from geometry_msgs.msg import Twist
 import numpy as np
+import csv
 from tf.transformations import euler_from_quaternion
 from nav_msgs.msg import Odometry
 from sensor_msgs.msg import Imu
 from sc649_final_project.msg import TrajectoryPoints
 from std_msgs.msg import Float64
-import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
 import numpy as np
-from IPython.display import HTML
 
 
 velocity = 0.1
 k = 0.6
 gamma = 0.15
 h = 1.5
-
 
 def controller(X):
     # X stores e,phi,theta of a bot
@@ -41,8 +38,10 @@ class control_handle():
         self.velocity   = velocity
         self.home_X  = np.empty(3)
         self.w  = 0
+        self.state_data = np.empty(6)
         self.X     = np.empty(3)
         self.rate       = rospy.Rate(10) # 10hz
+        self.x_state_home = np.empty(6)
         self.engaged    = False
         self.time       = 0
         print("Starting controller")
@@ -61,16 +60,9 @@ class control_handle():
             self.vel_pub.publish(vel)
             error = self.X[0] + self.X[1] +self.X[2]  
             self.error_pub.publish(error)
-            csv=np.append(csv,self.X,axis=0)
-        else:            
-            fig, ax = plt.subplots()
-
-# Create an animation
-            animation = FuncAnimation(fig, update, frames=len(csv), interval=1000)
-
-# Display the animation in the notebook
-            HTML(animation.to_jshtml())
-            
+            self.state_data = np.vstack((self.state_data,self.x_state_home))
+        else:
+            np.savetxt("/home/kushal/sc649_ws/src/sc649_final_project/data/states.csv")
 
 
     def OdomCallback(self, data):
@@ -102,6 +94,7 @@ class control_handle():
 
         #velocity
         self.velocity = data.twist.twist.linear.x
+        self.x_state_home = np.array([x,y,phi,self.home_X[0], self.home_X[1], self.home_X[2]])
 
     def ImuCallback(self, data):
         self.w = data.angular_velocity.x
