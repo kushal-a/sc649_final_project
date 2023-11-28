@@ -22,7 +22,10 @@ def controller(X):
     phi = X[1]
     theta = X[2]
     alpha = theta - phi
-    omega = k*alpha + gamma * (np.cos(alpha)*np.sin(alpha)/alpha)*(alpha+h*theta)
+    if abs(alpha)<0.04:
+        omega = k*alpha + gamma * (alpha+h*theta)
+    else:
+        omega = k*alpha + gamma * (np.cos(alpha)*np.sin(alpha)/alpha)*(alpha+h*theta)
     new_vel = gamma * np.cos(alpha)*e
     return omega, new_vel
 
@@ -48,12 +51,16 @@ class control_handle():
 
     def run(self):
         while not rospy.is_shutdown():
-            print(self.X, self.velocity, self.w)
-            if self.X[0]<1.6 and (self.X[1]<0.17 or self.X[1]>6.1) and (self.X[2]<0.17 or self.X[2]>6.1):
-                omega = 0
-                new_vel = 0
+            if self.X[0]<0.03:
+                if abs(self.X[1])<0.04 and abs(self.X[2])<0.04:
+                    omega = 0
+                    new_vel = 0
+                else:
+                    new_vel = 0
+                    omega, _ = controller(self.X)                
             else:
                 omega, new_vel  = controller(self.X)
+            print(self.X, self.velocity, self.w, new_vel, omega)
             vel = Twist()
             vel.linear.x   = new_vel
             vel.angular.z  = omega
@@ -62,7 +69,7 @@ class control_handle():
             self.error_pub.publish(error)
             self.state_data = np.vstack((self.state_data,self.x_state_home))
         else:
-            np.savetxt("/home/kushal/sc649_ws/src/sc649_final_project/data/states.csv", self.state_data)
+            np.savetxt("/home/kushal/sc649_ws/src/sc649_final_project/data/states.csv", self.state_data, delimiter=',')
 
 
     def OdomCallback(self, data):
@@ -79,13 +86,13 @@ class control_handle():
         #phi relative to axis parallel to global x
         quaternion = pos.orientation
         _, __, phi = euler_from_quaternion([quaternion.x, quaternion.y, quaternion.z, quaternion.w])         #phi \in [-pi,pi]
-        if phi<0:
-            phi = 2*np.pi + phi       #phi \in [0,2pi]
+        # if phi<0:
+        #     phi = 2*np.pi + phi       #phi \in [0,2pi]
 
         #theta relative to axis parallel to global x and origin as home
         theta = np.arctan2(y_rel,x_rel)
-        if theta<0:
-            theta = 2*np.pi + theta    #theta \in [0, 2pi]
+        # if theta<0:
+        #     theta = 2*np.pi + theta    #theta \in [0, 2pi]
 
         e = np.sqrt(np.power(x_rel,2)+np.power(y_rel,2))
         ### IMPORTANT: X stores e,phi,theta of a bot
