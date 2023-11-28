@@ -7,13 +7,13 @@ from tf.transformations import euler_from_quaternion
 from nav_msgs.msg import Odometry
 from sensor_msgs.msg import Imu
 from sc649_final_project.msg import TrajectoryPoints
-from std_msgs.msg import Float64
+from sc649_final_project.msg import ErrorAngles
 import numpy as np
 
 
 velocity = 0.1
-k = 0.5
-gamma = 0.15
+k = 0.2
+gamma = 0.2
 h = 2
 
 def controller(X):
@@ -36,7 +36,7 @@ class control_handle():
         self.odom  = rospy.Subscriber('/odom', Odometry, self.OdomCallback)
         self.imu       = rospy.Subscriber('/imu', Imu, self.ImuCallback)
         self.vel_pub    = rospy.Publisher('/cmd_vel', Twist, queue_size= 1000)
-        self.error_pub    = rospy.Publisher('/error', Float64, queue_size= 1000)
+        self.error_pub    = rospy.Publisher('/error', ErrorAngles, queue_size= 1000)
         self.points_sub = rospy.Subscriber('/points', TrajectoryPoints, self.PointsCallback)
         self.velocity   = velocity
         self.home_X  = np.empty(3)
@@ -54,18 +54,19 @@ class control_handle():
             if self.X[0]<0.03:
                 if abs(self.X[1])<0.04 and abs(self.X[2])<0.04:
                     omega = 0
-                    new_vel = 0
+                    new_vel = 0 
                 else:
                     new_vel = 0
                     omega, _ = controller(self.X)                
             else:
                 omega, new_vel  = controller(self.X)
-            print(self.X, self.velocity, self.w, new_vel, omega)
+            #print(self.X, self.velocity, self.w, new_vel, omega)
             vel = Twist()
             vel.linear.x   = new_vel
             vel.angular.z  = omega
             self.vel_pub.publish(vel)
-            error = self.X[0] + self.X[1] +self.X[2]  
+            error = ErrorAngles()
+            error.E, error.PHI, error.THETA = np.abs(self.X)
             self.error_pub.publish(error)
             self.state_data = np.vstack((self.state_data,self.x_state_home))
         else:
@@ -86,17 +87,20 @@ class control_handle():
         #phi relative to axis parallel to global x
         quaternion = pos.orientation
         _, __, phi = euler_from_quaternion([quaternion.x, quaternion.y, quaternion.z, quaternion.w])         #phi \in [-pi,pi]
+        phi_rel = phi - self.home_X[2]
         # if phi<0:
         #     phi = 2*np.pi + phi       #phi \in [0,2pi]
 
         #theta relative to axis parallel to global x and origin as home
         theta = np.arctan2(y_rel,x_rel)
+        theta_rel = theta - self.home_X[2]
+
         # if theta<0:
         #     theta = 2*np.pi + theta    #theta \in [0, 2pi]
 
         e = np.sqrt(np.power(x_rel,2)+np.power(y_rel,2))
         ### IMPORTANT: X stores e,phi,theta of a bot
-        self.X = np.array([e, phi, theta])
+        self.X = np.array([e, phi_rel, theta_rel])
 
 
         #velocity

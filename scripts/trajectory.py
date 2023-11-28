@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import rospy
-from std_msgs.msg import Float64
+from sc649_final_project.msg import ErrorAngles
 import numpy as np
 from sc649_final_project.msg import TrajectoryPoints
 import csv
@@ -23,14 +23,16 @@ class trajectory_node():
         self.trajectory_points = np.array(data_list, dtype=np.float64)
         self.num_of_points = np.shape(self.trajectory_points)[0]
         self.node       = rospy.init_node('trajectory', anonymous=True)
-        self.error_sub       = rospy.Subscriber('/error', Float64, self.ErrorCallback)
+        self.error_sub       = rospy.Subscriber('/error', ErrorAngles, self.ErrorCallback)
         self.points_pub    = rospy.Publisher('/points', TrajectoryPoints, queue_size= 1000)
         self.current_line = -1
-        self.error = 9000
+        self.error = np.array([9000,9000,9000])
 
     def run(self):
+        rospy.sleep(4)
         while not rospy.is_shutdown():
-            if self.error<0.3 and self.current_line+1<self.num_of_points-1:
+            print(self.error)
+            if np.all(self.error<np.array([0.3,0.1,0.1])) and self.current_line+1<=self.num_of_points-1:
                 print(self.current_line)
                 points = TrajectoryPoints()
                 points.X = self.trajectory_points[self.current_line+1][0]
@@ -39,9 +41,10 @@ class trajectory_node():
                 self.current_line = self.current_line+1
                 self.points_pub.publish(points)
                 print("POINT PUBLISHED")
+                rospy.sleep(2)
     
     def ErrorCallback(self, data):
-        self.error = data.data
+        self.error = np.array([data.E, data.PHI, data.THETA])
             
 
 
